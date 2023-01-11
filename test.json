@@ -1,0 +1,28 @@
+{
+    "Metadata": {
+        "type": "Picklist",
+        "length": 255,
+        "required": false,
+        "label": "Stages",
+        "description": "This is a description",
+        "valueSet": {
+            "restricted": true,
+            "valueSetDefinition": {
+                "sorted": false,
+                "value": [
+                    {
+                        "fullName": "TestFullName1",
+                        "default": true,
+                        "label": "TestLabel1"
+                    },
+                    {
+                        "fullName": "TestFullName2",
+                        "default": false,
+                        "label": "TestLabel2"
+                    }
+                ]
+            }
+        }
+    },
+    "FullName": "Opportunity.Stages__c"
+}

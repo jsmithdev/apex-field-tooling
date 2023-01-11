@@ -1,18 +1,35 @@
-# Salesforce DX Project: Next Steps
+# Apex Field Tooling
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+Classes with metadata tooling in Apex
 
-## How Do You Plan to Deploy Your Changes?
+## Classes
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+### MetadataPicklist
 
-## Configure Your Salesforce DX Project
+Create picklist field via Apex - for example:
 
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
+```java
+MetadataPicklist.Meta m = new MetadataPicklist.Meta();
+m.objectAPIName = 'Opportunity';
+m.fieldAPIName = 'Mages__c';
+m.fieldLabel = 'Mages';
+m.fieldDescription = 'This is a description';
+m.fieldType = 'Picklist';
+m.picklistValues = new List<PicklistValue>{
+    new PicklistValue('TestFullName1', true, 'TestLabel1'),
+    new PicklistValue('TestFullName2', false, 'TestLabel2')
+};
+Boolean exists = MetadataPicklist.check(m);
 
-## Read All About It
+if(exists == false){
+    String result = MetadataPicklist.create(m);
+    System.debug(result);
+}
+else {
+    System.debug('Field already exists');
+}
+```
 
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+---
+
+written w/ <3 by [Jamie](me@jsmith.dev)

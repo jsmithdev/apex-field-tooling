@@ -5,6 +5,16 @@
 // You can also execute the entire file by running the command:
 //     SFDX: Execute Anonymous Apex with Editor Contents
 
-string tempvar = 'Enter_your_name_here';
-System.debug('Hello World!');
-System.debug('My name is ' + tempvar);
+Boolean remove = false;
+
+if(remove){
+    MetadataTooling tool = new MetadataTooling();
+    String result = tool.deleteField(
+        'Opportunity',
+        'Stages__c'
+    );
+    System.debug(result);
+}
+
+
+MetadataPicklist.testRun();

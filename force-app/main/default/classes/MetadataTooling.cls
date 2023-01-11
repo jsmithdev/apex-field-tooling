@@ -1,6 +1,6 @@
 @SuppressWarnings('PMD.NcssMethodCount, PMD.TooManyFields, PMD.ExcessivePublicCount, PMD.CognitiveComplexity') //todo would be nice to refactor this class
 
-public class Tooling {
+public class MetadataTooling {
 	public Integer length;
 	public Integer precision;
 	public Integer relationshipOrder;
@@ -49,7 +49,7 @@ public class Tooling {
     
     private MetadataService.MetadataPort service = new MetadataService.MetadataPort();  
     
-    public Tooling() {
+    public MetadataTooling() {
         service.SessionHeader = new MetadataService.SessionHeader_element();
         service.SessionHeader.sessionId = UserInfo.getSessionId();
     }
