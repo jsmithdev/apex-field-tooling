@@ -26,7 +26,7 @@ public with sharing class MetadataPicklist {
         }
         else if(!exists){
             System.debug('Creating new field');
-            MetadataPicklist.upsertField(field, '');
+            MetadataPicklist.createField(field);
         }
         else{
             System.debug('Field already exists and is up to date');
@@ -76,6 +76,10 @@ public with sharing class MetadataPicklist {
 
         // if not null, field exists
         return theField != null;
+    }
+    
+    public static String createField(PicklistField plf){
+        return upsertField(plf, '');
     }
     
     public static String upsertField(PicklistField plf, String fieldId){
