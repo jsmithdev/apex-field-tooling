@@ -5,24 +5,47 @@ public with sharing class MetadataPicklist {
     // Consuming example
     public static void testRun(){
 
-        MetadataPicklist.Meta m = new MetadataPicklist.Meta();
-        m.objectAPIName = 'Opportunity';
-        m.fieldAPIName = 'Mages__c';
-        m.fieldLabel = 'Mages';
-        m.fieldDescription = 'This is a description';
-        m.fieldType = 'Picklist';
-        m.picklistValues = new List<PicklistValue>{
-            new PicklistValue('TestFullName1', true, 'TestLabel1'),
-            new PicklistValue('TestFullName2', false, 'TestLabel2')
-        };
-        Boolean exists = MetadataPicklist.check(m);
+        MetadataPicklist.PicklistField field = new MetadataPicklist.PicklistField();
 
-        if(exists == false){
-            String result = MetadataPicklist.create(m);
-            System.debug(result);
+        field.objectAPIName = 'Opportunity';
+        field.fieldAPIName = 'Mages__c';
+        field.fieldLabel = 'Mages';
+        field.picklistValues = new List<MetadataPicklist.PickListValue>{
+            new MetadataPicklist.PicklistValue('TestFullName1', 'TestLabel1'),
+            new MetadataPicklist.PicklistValue('TestFullName5', 'TestLabel5'),
+            new MetadataPicklist.PicklistValue('TestFullName2', 'TestLabel2')
+        };
+
+        Boolean exists = field.doesFieldExist();
+        Boolean hasNonExistentValues = field.hasNonExistentValues();
+
+        if(exists && hasNonExistentValues){
+            System.debug('Creating new values');
+            String fieldId = MetadataPicklist.getFieldId(field);
+            MetadataPicklist.upsertField(field, fieldId);
         }
-        else {
-            System.debug('Field already exists');
+        else if(!exists){
+            System.debug('Creating new field');
+            MetadataPicklist.upsertField(field, '');
+        }
+        else{
+            System.debug('Field already exists and is up to date');
+        }
+    }
+
+
+    public class PicklistField {
+        public String objectAPIName;
+        public String fieldAPIName;
+        public String fieldLabel;
+        public String fieldDescription;
+        public String fieldType = 'Picklist';
+        public List<PicklistValue> picklistValues;
+        public Boolean doesFieldExist (){
+            return MetadataPicklist.check(this);
+        }
+        public Boolean hasNonExistentValues (){
+            return MetadataPicklist.hasNonExistentValues(this);
         }
     }
 
@@ -35,32 +58,33 @@ public with sharing class MetadataPicklist {
             this.isDefault = isDefault;
             this.label = label;
         }
-    }
-    
-    public class Meta {
-        public String objectAPIName;
-        public String fieldAPIName;
-        public String fieldLabel;
-        public String fieldDescription;
-        public String fieldType;
-        public List<PicklistValue> picklistValues;
+        public PicklistValue(String fullName, String label){
+            this.fullName = fullName;
+            this.isDefault = false;
+            this.label = label;
+        }
+        public PicklistValue(String fullName){
+            this.fullName = fullName;
+            this.isDefault = false;
+            this.label = fullName;
+        }
     }
 
-    public static Boolean check(Meta m){//, Boolean deleteField
-
-        Schema.SobjectField theField = Schema.getGlobalDescribe().get(m.objectAPIName).getDescribe().fields.getMap().get(m.fieldAPIName);
+    public static Boolean check(PicklistField plf){//, Boolean deleteField
+        
+        Schema.SobjectField theField = Schema.getGlobalDescribe().get(plf.objectAPIName).getDescribe().fields.getMap().get(plf.fieldAPIName);
 
         // if not null, field exists
         return theField != null;
     }
     
-    public static String create(Meta m){
+    public static String upsertField(PicklistField plf, String fieldId){
 
-        String objectAPIName = m.objectAPIName;
-        String fieldAPIName = m.fieldAPIName;
-        String fieldLabel = m.fieldLabel;
-        String fieldDescription = m.fieldDescription;
-        List<PicklistValue> picklistValues = m.picklistValues;
+        String objectAPIName = plf.objectAPIName;
+        String fieldAPIName = plf.fieldAPIName;
+        String fieldLabel = plf.fieldLabel;
+        String fieldDescription = plf.fieldDescription;
+        List<PicklistValue> picklistValues = plf.picklistValues;
 
         String values = '';
 
@@ -96,13 +120,82 @@ public with sharing class MetadataPicklist {
 
         //System.debug(md);
 
+        return callout(md, fieldId);
+    }
+
+
+    public static Boolean hasNonExistentValues(PicklistField plf){
+        List<PicklistValue> nonExistentValues = MetadataPicklist.getNonExistentValues(plf);
+        return nonExistentValues.size() > 0;
+    }
+
+    public static List<PicklistValue> getNonExistentValues(PicklistField plf){
+
+        List<PicklistValue> potentialValues = plf.picklistValues;
+        List<PicklistValue> newValues = new List<PicklistValue>();
+
+        List<Schema.PicklistEntry> entries = Schema.getGlobalDescribe()
+            .get(plf.objectAPIName).getDescribe()
+            .fields.getMap().get(plf.fieldAPIName).getDescribe()
+            .getPickListValues();
+        
+        for(PicklistValue pot : potentialValues){
+            
+            Boolean exists = false;
+
+            for( Schema.PicklistEntry entry : entries){
+                if(entry.getValue().equalsIgnoreCase(pot.fullName)){
+                    exists = true;
+                    break;
+                }
+            }
+
+            if(!exists){
+                newValues.add(pot);
+            }
+        }
+
+        return newValues;
+    }
+    
+    public static String getFieldId(MetadataPicklist.PicklistField field){
+
+        String baseURL = URL.getSalesforceBaseUrl().toExternalForm();
+
+        String body = MetadataPicklist.callEndpoint( baseURL + '/services/data/v38.0/tooling/query?q=select+id,+DataType,NamespacePrefix,+DeveloperName,+Metadata+from+FieldDefinition+where+EntityDefinition.QualifiedApiName+=+\''+field.objectAPIName+'\'+AND+QualifiedApiName+=\''+field.fieldAPIName+'\'' );
+        
+        String pre = 'sobjects/FieldDefinition/Opportunity.';
+        Integer marker = body.indexOf(pre);
+        Integer mark = marker+pre.length();
+        String uid = body.substring(mark, mark+15);
+
+        return uid;
+    }
+
+    public static String callEndpoint(String endPoint) {
+
+        HttpRequest request = new HttpRequest();
+        request.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
+        request.setTimeout(60000);   
+        request.setEndpoint(endPoint);   
+        request.setMethod('GET');
+
+        Http http = new Http();
+        HTTPResponse res = Test.isRunningTest() ? new HTTPResponse() : http.send(request);
+        return res.getBody();
+    }
+
+    public static String callout(String body, String fieldId){
+
+        String method = fieldId == null || fieldId == '' ? 'POST' : 'PATCH';
+
         HttpRequest request = new HttpRequest();
         request.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
         request.setHeader('Content-Type', 'application/json');
-        request.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm()+'/services/data/v41.0/tooling/sobjects/CustomField/');
-        request.setMethod('POST');
+        request.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm()+'/services/data/v41.0/tooling/sobjects/CustomField/'+fieldId);
+        request.setMethod(method);
         
-        request.setBody(md);
+        request.setBody(body);
         
         Http http = new Http();
         HTTPResponse res = Test.isRunningTest() ? new HTTPResponse() : http.send(request);
