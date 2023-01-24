@@ -25,7 +25,7 @@ field.picklistValues = new List<MetadataPicklist.PickListValue>{
 Boolean exists = field.doesFieldExist();
 
 if(exists == false){
-    MetadataPicklist.createField( field, '' );
+    MetadataPicklist.createField( field );
 }
 else {
     System.debug('Field already exists');
