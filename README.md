@@ -22,9 +22,7 @@ field.picklistValues = new List<MetadataPicklist.PickListValue>{
     new MetadataPicklist.PicklistValue('TestFullName2', 'TestLabel2')
 };
 
-Boolean exists = field.doesFieldExist();
-
-if(exists == false){
+if( !field.doesFieldExist() ){
     MetadataPicklist.createField( field );
 }
 else {
@@ -35,31 +33,32 @@ else {
 Update a picklist's options via Apex - for example:
 
 ```java
+
 MetadataPicklist.PicklistField field = new MetadataPicklist.PicklistField();
 
 field.objectAPIName = 'Opportunity';
 field.fieldAPIName = 'Mages__c';
 field.fieldLabel = 'Mages';
+field.fieldDescription = 'It\'s a picklist field description';
 field.picklistValues = new List<MetadataPicklist.PickListValue>{
     new MetadataPicklist.PicklistValue('TestFullName1', 'TestLabel1'),
-    new MetadataPicklist.PicklistValue('TestFullName2', 'TestLabel2'),
-    new MetadataPicklist.PicklistValue('TestFullName3', 'TestLabel3')
+    new MetadataPicklist.PicklistValue('TestFullName2', 'TestLabel2')
 };
 
-Boolean exists = field.doesFieldExist();
-Boolean hasNonExistentValues = field.hasNonExistentValues();
+if( field.doesFieldExist() ){
 
-if(exists && hasNonExistentValues){
-    System.debug('Creating new values');
-    String fieldId = MetadataPicklist.getFieldId(field);
-    MetadataPicklist.upsertField(field, fieldId);
+    if( field.hasNonExistentValues() ){
+        String fieldId = MetadataPicklist.getFieldId(field);
+        System.debug('Updating '+fieldId+' with new options');
+        MetadataPicklist.upsertField(field, fieldId);
+    }
+    else {
+        System.debug('Field already exists and is up to date');
+    }
 }
-else if(!exists){
+else {
     System.debug('Creating new field');
     MetadataPicklist.createField(field);
-}
-else{
-    System.debug('Field already exists and is up to date');
 }
 ```
 
